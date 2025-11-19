@@ -1,36 +1,44 @@
 
 package com.utpl.tutorias.microservicio;
 
+import com.utpl.tutorias.microservicio.proyecto.practico.microservicios.horarios.Horario;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.metrics.Counter;
-import org.eclipse.microprofile.metrics.MetricRegistry;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.core.MediaType;
 
 import io.helidon.microprofile.testing.junit5.HelidonTest;
-import io.helidon.metrics.api.MetricsFactory;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.AfterAll;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @HelidonTest
 class MainTest {
 
     @Inject
-    private MetricRegistry registry;
-
-    @Inject
     private WebTarget target;
 
+    @BeforeEach
+    void limpiarDatos() {
+        Horario[] existentes = target.path("horarios")
+                .request()
+                .get(Horario[].class);
+        for (Horario horario : existentes) {
+            target.path("horarios")
+                    .queryParam("asignatura", horario.getAsignatura())
+                    .request()
+                    .delete();
+        }
+    }
 
     @Test
-    void testHealth() {
+    void healthDebeResponder200() {
         Response response = target
                 .path("health")
                 .request()
@@ -39,59 +47,47 @@ class MainTest {
     }
 
     @Test
-    void testMicroprofileMetrics() {
-        Message message = target.path("simple-greet/Joe")
+    void crudDeHorarios() {
+        Horario[] inicial = target.path("horarios")
                 .request()
-                .get(Message.class);
+                .get(Horario[].class);
+        assertThat(inicial.length, is(0));
 
-        assertThat(message.getMessage(), is("Hello Joe"));
-        Counter counter = registry.counter("personalizedGets");
-        double before = counter.getCount();
-
-        message = target.path("simple-greet/Eric")
+        Horario creado = target.path("horarios")
                 .request()
-                .get(Message.class);
+                .post(Entity.text("Practicum II,Lunes,19:00,20:00"), Horario.class);
+        assertThat(creado, is(notNullValue()));
+        assertThat(creado.getAsignatura(), is("Practicum II"));
+        assertThat(creado.getDia(), is("Lunes"));
+        assertThat(creado.isCruce(), is(false));
 
-        assertThat(message.getMessage(), is("Hello Eric"));
-        double after = counter.getCount();
-        assertEquals(1d, after - before, "Difference in personalized greeting counter between successive calls");
-    }
-
-    @AfterAll
-    static void clear() {
-        MetricsFactory.closeAll();
-    }
-
-
-    @Test
-    void testGreet() {
-        Message message = target
-                .path("simple-greet")
+        Horario[] despuesDeCrear = target.path("horarios")
                 .request()
-                .get(Message.class);
-        assertThat(message.getMessage(), is("Hello World!"));
+                .get(Horario[].class);
+        assertThat(despuesDeCrear, arrayWithSize(1));
+
+        Response deleteResponse = target.path("horarios")
+                .queryParam("asignatura", "Practicum II")
+                .request()
+                .delete();
+        assertThat(deleteResponse.getStatus(), is(200));
+
+        Horario[] finalLista = target.path("horarios")
+                .request()
+                .get(Horario[].class);
+        assertThat(finalLista.length, is(0));
     }
 
     @Test
-    void testGreetings() {
-        Message jsonMessage = target
-                .path("greet/Joe")
+    void detectaCruces() {
+        target.path("horarios")
                 .request()
-                .get(Message.class);
-        assertThat(jsonMessage.getMessage(), is("Hello Joe!"));
+                .post(Entity.text("Microservicios,Martes,10:00,12:00"), Horario.class);
 
-        try (Response r = target
-                .path("greet/greeting")
+        Horario conCruce = target.path("horarios")
                 .request()
-                .put(Entity.entity("{\"greeting\" : \"Hola\"}", MediaType.APPLICATION_JSON))) {
-            assertThat(r.getStatus(), is(204));
-        }
+                .post(Entity.text("Arquitectura,Martes,11:00,12:30"), Horario.class);
 
-        jsonMessage = target
-                .path("greet/Jose")
-                .request()
-                .get(Message.class);
-        assertThat(jsonMessage.getMessage(), is("Hola Jose!"));
+        assertTrue(conCruce.isCruce(), "El horario debería marcar cruce al traslapar con otro existente.");
     }
-
 }
