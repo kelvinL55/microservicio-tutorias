@@ -1,0 +1,37 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: microservicio-tutorias
+  labels:
+    app: microservicio-tutorias
+spec:
+  type: ClusterIP
+  selector:
+    app: microservicio-tutorias
+  ports:
+    - name: tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: microservicio-tutorias
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: microservicio-tutorias
+  template:
+    metadata:
+      labels:
+        app: microservicio-tutorias
+        version: v1
+    spec:
+      containers:
+      - name: microservicio-tutorias
+        image: microservicio-tutorias
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
