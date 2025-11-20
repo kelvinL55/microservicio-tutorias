@@ -31,6 +31,14 @@ public class HorarioService {
         return horarios.removeIf(h -> h.getAsignatura().equalsIgnoreCase(asignatura.trim()));
     }
 
+    public boolean eliminarTodos() {
+        if (horarios.isEmpty()) {
+            return false;
+        }
+        horarios.clear();
+        return true;
+    }
+
     public boolean verificarCruce(Horario nuevoHorario) {
         return horarios.stream()
                 .filter(h -> h.getDia().equalsIgnoreCase(nuevoHorario.getDia()))
@@ -39,10 +47,9 @@ public class HorarioService {
     }
 
     private boolean traslapa(LocalTime inicioExistente,
-                             LocalTime finExistente,
-                             LocalTime inicioNuevo,
-                             LocalTime finNuevo) {
+            LocalTime finExistente,
+            LocalTime inicioNuevo,
+            LocalTime finNuevo) {
         return inicioNuevo.isBefore(finExistente) && finNuevo.isAfter(inicioExistente);
     }
 }
-

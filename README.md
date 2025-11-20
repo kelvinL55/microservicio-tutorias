@@ -37,6 +37,9 @@ curl http://localhost:8080/horarios
 # Eliminar horario
 curl -X DELETE "http://localhost:8080/horarios?asignatura=Practicum II"
 
+# Eliminar todos los horarios
+curl -X DELETE "http://localhost:8080/horarios"
+
 # Verificar salud
 curl http://localhost:8080/health
 

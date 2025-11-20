@@ -49,7 +49,11 @@ public class HorarioResource {
     @DELETE
     public Response eliminarHorario(@QueryParam("asignatura") String asignatura) {
         if (asignatura == null || asignatura.isBlank()) {
-            throw new BadRequestException("El parámetro 'asignatura' es obligatorio.");
+            if (horarioService.eliminarTodos()) {
+                return Response.ok(Map.of("mensaje", "Todos los horarios eliminados")).build();
+            } else {
+                return Response.ok(Map.of("mensaje", "no hay ningún horario activo o creado")).build();
+            }
         }
 
         if (horarioService.eliminarHorario(asignatura)) {
@@ -79,4 +83,3 @@ public class HorarioResource {
         }
     }
 }
-
